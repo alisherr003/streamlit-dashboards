@@ -107,4 +107,16 @@ with tab2:
     df_filtered = aov_df[(aov_df['created_date_only'] >= selected_start) &
                          (aov_df['created_date_only'] <= selected_end)]
 
+    # 🔹 KPIs
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        aov = df_filtered['AOV'].mean()
+        st.metric("Average Order Value", f"{aov:,.0f} UZS")
+    with col2:
+        aov_min = df_filtered['AOV'].min()
+        st.metric("Minimum AOV", f"{aov_min:,.0f} UZS")
+    with col3:
+        aov_max = df_filtered['AOV'].max()
+        st.metric("Maximum AOV", f"{aov_max:,.0f} UZS")
+    
     st.write(df_filtered.tail())
