@@ -82,14 +82,18 @@ with tab1:
 
 with tab2:
     st.title("Average Order Value")
-    url = f"https://docs.google.com/spreadsheets/d/1QuKlD80GdgBF2Seto7bj4Xm2WoOaMEeH/export?format=csv&gid=285760237&t={time.time()}"
-
-
-    aov_df = pd.read_csv(url)
-    aov_df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # clean_date ustuni
-    aov_df['created_date_only'] = aov_df['created_date'].dt.date
-    aov_df = aov_df[aov_df['created_date_only'].notna()]
     
+    url = f"https://docs.google.com/spreadsheets/d/1QuKlD80GdgBF2Seto7bj4Xm2WoOaMEeH/export?format=csv&gid=285760237&t={time.time()}"
+    aov_df = pd.read_csv(url)
+
+    # 1️⃣ to'g'ri DataFrame ustuni bilan ishlash
+    aov_df['created_date'] = pd.to_datetime(aov_df['clean_date'], errors='coerce')  # clean_date ustuni bor deb faraz qilamiz
+    aov_df['created_date_only'] = aov_df['created_date'].dt.date
+
+    # 2️⃣ Noto‘g‘ri sanalarni olib tashlash
+    aov_df = aov_df[aov_df['created_date_only'].notna()]
+
+    # 3️⃣ Slider uchun min va max date
     start_date = aov_df['created_date_only'].min()
     end_date = aov_df['created_date_only'].max()
     selected_start, selected_end = st.slider(
@@ -98,6 +102,9 @@ with tab2:
         max_value=end_date,
         value=(start_date, end_date)
     )
-    df_filtered = aov_df[(aov_df['created_date_only'] >= selected_start) & (aov_df['created_date_only'] <= selected_end)]
 
-    st.write(aov_df.tail())
+    # 4️⃣ Data filterlash
+    df_filtered = aov_df[(aov_df['created_date_only'] >= selected_start) &
+                         (aov_df['created_date_only'] <= selected_end)]
+
+    st.write(df_filtered.tail())
