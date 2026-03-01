@@ -186,8 +186,5 @@ with tab2:
     )
 
     st.plotly_chart(fig, use_container_width=True)
-
-    # Oxirgi 5 qatorni ko‘rsatish
-    st.write(aov_df_filtered.tail())
     
     st.write(aov_df_filtered.tail())
