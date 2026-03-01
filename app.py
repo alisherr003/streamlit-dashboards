@@ -147,10 +147,10 @@ with tab2:
     st.plotly_chart(fig, use_container_width=True)
 
     aov_df_filtered['weekday'] = aov_df_filtered['created_date_only'].apply(lambda x: x.strftime('%A'))
-    aov_df_filtered['aov'] = aov_df_filtered['revenue'] / aov_df_filtered['daily_orders']
+    aov_df_filtered['aov'] = aov_df_filtered['AOV']
 
     # Hafta kunlari bo'yicha o'rtacha
-    weekday_aov = aov_df_filtered.groupby('weekday', as_index=False)['aov'].mean()
+    weekday_aov = aov_df_filtered.groupby('weekday', as_index=False)['AOV'].mean()
 
     weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
     weekday_aov['weekday'] = pd.Categorical(weekday_aov['weekday'], categories=weekday_order, ordered=True)
@@ -162,7 +162,7 @@ with tab2:
     y='aov',
     labels={'weekday':'Day of Week','aov':'Average Order Value'},
     title='Average Order Value by Weekday',
-    text=weekday_aov['aov'].apply(lambda x: f"{x:,.0f}")
+    text=weekday_aov['AOV'].apply(lambda x: f"{x:,.0f}")
     )
     fig.update_traces(textposition='inside')
     fig.update_layout(yaxis_tickformat=',')
