@@ -126,10 +126,10 @@ with tab2:
     fig = px.bar(
         aov_df_grouped,
         x='created_date_only',
-        y='aov',  # Average Order Value ustuni
-        labels={'created_date_only':'Date','aov':'Average Order Value'},
+        y='AOV',  # Average Order Value ustuni
+        labels={'created_date_only':'Date','AOV':'Average Order Value'},
         title="Average Order Value by Date",
-        text=df_grouped['aov'].apply(lambda x: f"{x:,.0f}")
+        text=aov_df_grouped['AOV'].apply(lambda x: f"{x:,.0f}")
     )
 
     fig.update_traces(textposition='inside')
