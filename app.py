@@ -150,22 +150,16 @@ with tab2:
     aov_df_filtered['aov'] = aov_df_filtered['AOV']
 
     # Hafta kunlari bo'yicha o'rtacha
-    weekday_aov = aov_df_filtered.groupby('weekday', as_index=False)['AOV'].mean()
+# 1️⃣ Haftaning kunini aniqlash
+    aov_df_filtered['weekday'] = aov_df_filtered['created_date'].dt.day_name()  # English weekdays
 
-    weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-    weekday_aov['weekday'] = pd.Categorical(weekday_aov['weekday'], categories=weekday_order, ordered=True)
-    weekday_aov = weekday_aov.sort_values('weekday')
+    # 2️⃣ Haftaning kunlari bo'yicha AOV ni hisoblash
+    weekday_aov = aov_df_filtered.groupby('weekday', as_index=False).agg({'AOV':'mean'})
 
-    fig = px.bar(
-    weekday_aov,
-    x='weekday',
-    y='AOV',
-    labels={'weekday':'Day of Week','AOV':'Average Order Value'},
-    title='Average Order Value by Weekday',
-    text=weekday_aov['AOV'].apply(lambda x: f"{x:,.0f}")
-    )
-    fig.update_traces(textposition='inside')
-    fig.update_layout(yaxis_tickformat=',')
-    st.plotly_chart(fig, use_container_width=True)
+    # 3️⃣ KPI ko'rinishida chiqarish
+    st.subheader("Average Order Value by Weekday")
+
+    for i, row in weekday_aov.iterrows():
+        st.metric(label=row['weekday'], value=f"{row['AOV']:,.0f} UZS")
     
     st.write(aov_df_filtered.tail())
