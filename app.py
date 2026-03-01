@@ -7,7 +7,7 @@ import time
 tab1, = st.tabs(["Revenue"])
 
 with tab1:
-    st.title("Revenue Dashboard")
+    st.title("Revenue Dashboards")
 
     # 🔹 Google Sheet CSV URL (time param – cache bypass)
     url = f"https://docs.google.com/spreadsheets/d/1uX-olx_6RCQ9K5j0_39Fqt-FIKCC8ag6/export?format=csv&gid=573004352&t={time.time()}"
