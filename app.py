@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import time
 
-tab1, = st.tabs(["Revenue"])
+tab1, tab2 = st.tabs(["Revenue","AOV"])
 
 with tab1:
     st.title("Revenue Dashboards")
@@ -79,3 +79,6 @@ with tab1:
 
     # 🔹 Oxirgi satrlarni ko‘rsatish
     st.write(df.tail())
+
+with tab2:
+    st.title("Average Order Value")
