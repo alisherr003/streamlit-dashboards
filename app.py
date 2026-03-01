@@ -7,7 +7,7 @@ import time
 tab1, tab2 = st.tabs(["Revenue","AOV"])
 
 with tab1:
-    st.title("Revenue Dashboards")
+    st.title("Revenue Dashboard")
 
     # 🔹 Google Sheet CSV URL (time param – cache bypass)
     url = f"https://docs.google.com/spreadsheets/d/1uX-olx_6RCQ9K5j0_39Fqt-FIKCC8ag6/export?format=csv&gid=573004352&t={time.time()}"
@@ -35,7 +35,7 @@ with tab1:
     start_date = df['created_date_only'].min()
     end_date = df['created_date_only'].max()
     selected_start, selected_end = st.slider(
-        "Select Date Range",
+        "Revenue Date Range",
         min_value=start_date,
         max_value=end_date,
         value=(start_date, end_date)
@@ -97,7 +97,7 @@ with tab2:
     start_date = aov_df['created_date_only'].min()
     end_date = aov_df['created_date_only'].max()
     selected_start, selected_end = st.slider(
-        "Select Date Range",
+        "AOV Date Range",
         min_value=start_date,
         max_value=end_date,
         value=(start_date, end_date)
