@@ -164,9 +164,12 @@ with tab2:
     weekday_aov['weekday'] = pd.Categorical(weekday_aov['weekday'], categories=weekday_order, ordered=True)
     weekday_aov = weekday_aov.sort_values('weekday')
 
-    # 4️⃣ KPI’larni bitta qatorda chiqarish
-    cols = st.columns(len(weekday_aov))
-    for col, (_, row) in zip(cols, weekday_aov.iterrows()):
-        col.metric(label=row['weekday'], value=f"{row['AOV']:,.0f} UZS")
+    fig = px.bar( weekday_aov, x='weekday', y='aov', 
+                 labels={'weekday':'Day of Week','aov':'Average Order Value'}, 
+                 title='Average Order Value by Weekday', 
+                 text=weekday_aov['AOV'].apply(lambda x: f"{x:,.0f}") )
+    fig.update_traces(textposition='inside') 
+    fig.update_layout(yaxis_tickformat=',') 
+    st.plotly_chart(fig, use_container_width=True)
     
     st.write(aov_df_filtered.tail())
