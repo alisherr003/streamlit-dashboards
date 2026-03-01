@@ -150,7 +150,7 @@ with tab2:
     aov_df_filtered['aov'] = aov_df_filtered['AOV']
 
     # Hafta kunlari bo'yicha o'rtacha
-# 1️⃣ Haftaning kunini aniqlash
+    # 1️⃣ Haftaning kunini aniqlash
     aov_df_filtered['weekday'] = aov_df_filtered['created_date'].dt.day_name()  # English weekdays
 
     # 2️⃣ Haftaning kunlari bo'yicha AOV ni hisoblash
@@ -164,12 +164,30 @@ with tab2:
     weekday_aov['weekday'] = pd.Categorical(weekday_aov['weekday'], categories=weekday_order, ordered=True)
     weekday_aov = weekday_aov.sort_values('weekday')
 
-    fig = px.bar( weekday_aov, x='weekday', y='aov', 
-                 labels={'weekday':'Day of Week','aov':'Average Order Value'}, 
-                 title='Average Order Value by Weekday', 
-                 text=weekday_aov['AOV'].apply(lambda x: f"{x:,.0f}") )
-    fig.update_traces(textposition='inside') 
-    fig.update_layout(yaxis_tickformat=',') 
+    # 4️⃣ Bar chart chizish
+    fig = px.bar(
+        weekday_aov,
+        x='weekday',
+        y='AOV',
+        labels={'weekday':'Day of Week','AOV':'Average Order Value'},
+        title='Average Order Value by Weekday',
+        text=weekday_aov['AOV'].apply(lambda x: f"{x:,.0f}")
+    )
+
+    # Textni bar ichida ko‘rsatish
+    fig.update_traces(textposition='inside')  
+
+    # Y-axis formatini chiroyli qilish
+    fig.update_layout(
+        yaxis_tickformat=',',
+        xaxis_tickangle=-45,      # hafta kunlarini diagonal qilib yozish
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
+    )
+
     st.plotly_chart(fig, use_container_width=True)
+
+    # Oxirgi 5 qatorni ko‘rsatish
+    st.write(aov_df_filtered.tail())
     
     st.write(aov_df_filtered.tail())
