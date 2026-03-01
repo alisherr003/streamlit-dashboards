@@ -85,30 +85,30 @@ with tab2:
     url = f"https://docs.google.com/spreadsheets/d/1QuKlD80GdgBF2Seto7bj4Xm2WoOaMEeH/export?format=csv&gid=285760237&t={time.time()}"
 
     def load_data():
-        df = pd.read_csv(url)
-        df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # clean_date ustuni
-        df['created_date_only'] = df['created_date'].dt.date
-        df = df[df['created_date_only'].notna()]
-        return df
+        aov_df = pd.read_csv(url)
+        aov_df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # clean_date ustuni
+        aov_df['created_date_only'] = aov_df['created_date'].dt.date
+        aov_df = aov_df[aov_df['created_date_only'].notna()]
+        return aov_df
 
     # 🔹 Refresh tugmasi
     if st.button("🔄 Refresh Data"):
-        st.session_state['df'] = load_data()
+        st.session_state['aov_df'] = load_data()
         st.success("Data updated from Google Sheet!")
 
     # 🔹 Dastlabki yuklash
-    if 'df' not in st.session_state:
-        st.session_state['df'] = load_data()
+    if 'aov_df' not in st.session_state:
+        st.session_state['aov_df'] = load_data()
 
-    df = st.session_state['df']
+    aov_df = st.session_state['aov_df']
 
     # 🔹 Date range slider
-    start_date = df['created_date_only'].min()
-    end_date = df['created_date_only'].max()
+    start_date = aov_df['created_date_only'].min()
+    end_date = aov_df['created_date_only'].max()
     selected_start, selected_end = st.slider(
         "Select Date Range",
         min_value=start_date,
         max_value=end_date,
         value=(start_date, end_date)
     )
-    df_filtered = df[(df['created_date_only'] >= selected_start) & (df['created_date_only'] <= selected_end)]   
+    df_filtered = aov_df[(aov_df['created_date_only'] >= selected_start) & (aov_df['created_date_only'] <= selected_end)]   
