@@ -159,7 +159,14 @@ with tab2:
     # 3️⃣ KPI ko'rinishida chiqarish
     st.subheader("Average Order Value by Weekday")
 
-    for i, row in weekday_aov.iterrows():
-        st.metric(label=row['weekday'], value=f"{row['AOV']:,.0f} UZS")
+    # Hafta kunlarini tartiblab olish (Monday -> Sunday)
+    weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    weekday_aov['weekday'] = pd.Categorical(weekday_aov['weekday'], categories=weekday_order, ordered=True)
+    weekday_aov = weekday_aov.sort_values('weekday')
+
+    # 4️⃣ KPI’larni bitta qatorda chiqarish
+    cols = st.columns(len(weekday_aov))
+    for col, (_, row) in zip(cols, weekday_aov.iterrows()):
+        col.metric(label=row['weekday'], value=f"{row['AOV']:,.0f} UZS")
     
     st.write(aov_df_filtered.tail())
