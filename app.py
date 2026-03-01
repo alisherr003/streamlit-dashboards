@@ -138,7 +138,7 @@ with tab2:
     # Grafik tagida note qo‘shish
     fig.add_annotation(
         xref='paper', yref='paper',
-        x=0, y=-0.15,  # paper coordinates: x=0 (chap), y=-0.15 (tagi)
+        x=-0.1, y=-0.25,  # paper coordinates: x=0 (chap), y=-0.15 (tagi)
         showarrow=False,
         text="Average Order Value = Daily Revenue / Daily Orders Count",
         font=dict(size=12, color="grey")
@@ -157,7 +157,7 @@ with tab2:
     weekday_aov = aov_df_filtered.groupby('weekday', as_index=False).agg({'AOV':'mean'})
 
     # 3️⃣ KPI ko'rinishida chiqarish
-    st.subheader("Average Order Value by Weekday")
+    st.subheader("*Average Order Value by Weekday")
 
     # Hafta kunlarini tartiblab olish (Monday -> Sunday)
     weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
