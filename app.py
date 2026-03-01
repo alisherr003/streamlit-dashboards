@@ -89,5 +89,15 @@ with tab2:
     aov_df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # clean_date ustuni
     aov_df['created_date_only'] = aov_df['created_date'].dt.date
     aov_df = aov_df[aov_df['created_date_only'].notna()]
-   
+    
+    start_date = aov_df['created_date_only'].min()
+    end_date = aov_df['created_date_only'].max()
+    selected_start, selected_end = st.slider(
+        "Select Date Range",
+        min_value=start_date,
+        max_value=end_date,
+        value=(start_date, end_date)
+    )
+    df_filtered = aov_df[(aov_df['created_date_only'] >= selected_start) & (aov_df['created_date_only'] <= selected_end)]
+
     st.write(aov_df.tail())
