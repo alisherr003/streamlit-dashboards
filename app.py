@@ -159,8 +159,8 @@ with tab2:
     fig = px.bar(
     weekday_aov,
     x='weekday',
-    y='aov',
-    labels={'weekday':'Day of Week','aov':'Average Order Value'},
+    y='AOV',
+    labels={'weekday':'Day of Week','AOV':'Average Order Value'},
     title='Average Order Value by Weekday',
     text=weekday_aov['AOV'].apply(lambda x: f"{x:,.0f}")
     )
