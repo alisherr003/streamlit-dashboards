@@ -6,7 +6,7 @@ import time
 import plotly.express as px
 
 
-tab1, tab2 = st.tabs(["Revenue","AOV"])
+tab1, tab2, tab3 = st.tabs(["Revenue","AOV","Revenue per Driver"])
 
 with tab1:
     st.title("Revenue Dashboard")
@@ -188,3 +188,31 @@ with tab2:
     st.plotly_chart(fig, use_container_width=True)
     
     st.write(aov_df_filtered.tail())
+
+with tab2:
+
+    st.title("Revenue per Driver")
+    
+    url = f"https://docs.google.com/spreadsheets/d/1C10Y4jSIJKcP-LnUzhh07Fuiwyr9aHUX/export?format=csv&gid=1164044928&t={time.time()}"
+    rpd_df = pd.read_csv(url)
+
+    # 1️⃣ to'g'ri DataFrame ustuni bilan ishlash
+    rpd_df['created_date'] = pd.to_datetime(rpd_df['clean_date'], errors='coerce')  # clean_date ustuni bor deb faraz qilamiz
+    rpd_df['created_date_only'] = rpd_df['created_date'].dt.date
+
+    # 2️⃣ Noto‘g‘ri sanalarni olib tashlash
+    rpd_df = rpd_df[rpd_df['created_date_only'].notna()]
+
+    # 3️⃣ Slider uchun min va max date
+    start_date = rpd_df['created_date_only'].min()
+    end_date = rpd_df['created_date_only'].max()
+    selected_start, selected_end = st.slider(
+        "Revenue per Driver Range",
+        min_value=start_date,
+        max_value=end_date,
+        value=(start_date, end_date)
+    )
+
+    # 4️⃣ Data filterlash
+    rpd_df_filtered = rpd_df[(rpd_df['created_date_only'] >= selected_start) &
+                         (rpd_df['created_date_only'] <= selected_end)]
