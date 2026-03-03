@@ -189,7 +189,7 @@ with tab2:
     
     st.write(aov_df_filtered.tail())
 
-with tab2:
+with tab3:
 
     st.title("Revenue per Driver")
     
@@ -216,3 +216,19 @@ with tab2:
     # 4️⃣ Data filterlash
     rpd_df_filtered = rpd_df[(rpd_df['created_date_only'] >= selected_start) &
                          (rpd_df['created_date_only'] <= selected_end)]
+
+
+
+        # 🔹 KPIs
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        rpd = rpd_df_filtered['rpd'].mean()
+        st.metric("Average RPD", f"{rpd:,.0f} UZS")
+    with col2:
+        rpd_min = rpd_df_filtered['rpd'].min()
+        st.metric("Minimum RPD", f"{rpd_min:,.0f} UZS")
+    with col3:
+        rpd_max = rpd_df_filtered['rpd'].max()
+        st.metric("Maximum RPD", f"{rpd_max:,.0f} UZS")
+
+    st.write(rpd_df_filtered.tail())
