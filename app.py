@@ -65,22 +65,101 @@ with tab1:
 
     # 🔹 Stacked Bar Chart: Daily Revenue by Service Type
     df_grouped = df_filtered.groupby(['created_date_only', 'service_type'], as_index=False)['revenue'].sum()
+
     fig = px.bar(
         df_grouped,
         x='created_date_only',
         y='revenue',
         color='service_type',
+        color_discrete_map={
+            'Pochta': 'yellow',   # birinchi service type sariq
+            'Yolovchi': '#1f77b4'      # ikkinchi service type ko‘k
+        },
         barmode='stack',
         labels={'created_date_only':'Date','revenue':'Revenue','service_type':'Service Type'},
         title="Daily Revenue by Service Type",
         text=df_grouped['revenue'].apply(lambda x: f"{x:,.0f}")
     )
+
     fig.update_traces(textposition='inside')
     fig.update_layout(yaxis_tickformat=',')  # y-axis financial format
     st.plotly_chart(fig, use_container_width=True)
 
-    # 🔹 Oxirgi satrlarni ko‘rsatish
-    st.write(df.tail())
+    #### WEEKLY STATISTICS#####
+
+    df_filtered['weekday'] = df_filtered['created_date_only'].apply(lambda x: x.strftime('%A'))
+    df_filtered['revenue'] = df_filtered['revenue']
+
+    # Hafta kunlari bo'yicha o'rtacha
+    # 1️⃣ Haftaning kunini aniqlash
+    df_filtered['weekday'] = df_filtered['created_date'].dt.day_name()  # English weekdays
+
+    # 2️⃣ Haftaning kunlari bo'yicha AOV ni hisoblash
+    weekday_rev = df_filtered.groupby('weekday', as_index=False).agg({'revenue':'mean'})
+
+    # 3️⃣ KPI ko'rinishida chiqarish
+    st.subheader("Average Revenue by Weekdays")
+
+    # Hafta kunlarini tartiblab olish (Monday -> Sunday)
+    weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    weekday_rev['weekday'] = pd.Categorical(weekday_rev['weekday'], categories=weekday_order, ordered=True)
+    weekday_rev = weekday_rev.sort_values('weekday')
+
+    # 4️⃣ Bar chart chizish
+    fig = px.bar(
+        weekday_rev,
+        x='weekday',
+        y='revenue',
+        labels={'weekday':'Day of Week','AOV':'Average Order Value'},
+        title='Average revenue by Weekdays',
+        text=weekday_rev['revenue'].apply(lambda x: f"{x:,.0f}")
+    )
+
+    # Textni bar ichida ko‘rsatish
+    fig.update_traces(textposition='inside')  
+
+    # Y-axis formatini chiroyli qilish
+    fig.update_layout(
+        yaxis_tickformat=',',
+        xaxis_tickangle=-45,      # hafta kunlarini diagonal qilib yozish
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    #### STATISTICS BY MONTH ##### 
+
+    # Oy + yil ustunini yaratish
+    df_filtered['month_year'] = pd.to_datetime(df_filtered['created_date_only']).dt.strftime('%b %Y')  # Jan 2025
+
+    # Oylar va yil bo'yicha revenue ni hisoblash
+    monthly_rev = df_filtered.groupby('month_year', as_index=False).agg({'revenue':'sum'})
+
+    # Oylarni tartiblash (datetime qilib)
+    monthly_rev['month_year_dt'] = pd.to_datetime(monthly_rev['month_year'], format='%b %Y')
+    monthly_rev = monthly_rev.sort_values('month_year_dt')
+
+    # Bar chart chizish
+    fig = px.bar(
+        monthly_rev,
+        x='month_year',
+        y='revenue',
+        labels={'month_year':'Month & Year','revenue':'Revenue'},
+        title='Monthly Revenue by Year',
+        color_discrete_sequence=['#1f77b4'],
+        text=monthly_rev['revenue'].apply(lambda x: f"{x:,.0f}")
+    )
+
+    fig.update_traces(textposition='inside')
+    fig.update_layout(
+        yaxis_tickformat=',',
+        xaxis_tickangle=-45,
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
     st.title("Average Order Value")
@@ -146,6 +225,8 @@ with tab2:
 
     st.plotly_chart(fig, use_container_width=True)
 
+    #### Weekly Statistics #######
+
     aov_df_filtered['weekday'] = aov_df_filtered['created_date_only'].apply(lambda x: x.strftime('%A'))
     aov_df_filtered['aov'] = aov_df_filtered['AOV']
 
@@ -190,45 +271,79 @@ with tab2:
     st.write(aov_df_filtered.tail())
 
 with tab3:
-
     st.title("Revenue per Driver")
     
+    # 1️⃣ Google Sheet URL
     url = f"https://docs.google.com/spreadsheets/d/1C10Y4jSIJKcP-LnUzhh07Fuiwyr9aHUX/export?format=csv&gid=1164044928&t={time.time()}"
-    rpd_df = pd.read_csv(url)
+    rpd_df = pd.read_csv(url,sep=",")
 
-    # 1️⃣ to'g'ri DataFrame ustuni bilan ishlash
-    rpd_df['created_date'] = pd.to_datetime(rpd_df['clean_date'], errors='coerce')  # clean_date ustuni bor deb faraz qilamiz
+    # 2️⃣ Date ustunini to'g'rilash
+    rpd_df['created_date'] = pd.to_datetime(rpd_df['clean_date'], errors='coerce')  # clean_date mavjud deb faraz qilamiz
     rpd_df['created_date_only'] = rpd_df['created_date'].dt.date
 
-    # 2️⃣ Noto‘g‘ri sanalarni olib tashlash
+    # 3️⃣ Noto‘g‘ri sanalarni olib tashlash
     rpd_df = rpd_df[rpd_df['created_date_only'].notna()]
 
-    # 3️⃣ Slider uchun min va max date
+    # 4️⃣ Slider uchun min va max date
     start_date = rpd_df['created_date_only'].min()
     end_date = rpd_df['created_date_only'].max()
     selected_start, selected_end = st.slider(
-        "Revenue per Driver Range",
+        "Select Date Range",
         min_value=start_date,
         max_value=end_date,
         value=(start_date, end_date)
     )
 
-    # 4️⃣ Data filterlash
+    # 5️⃣ Data filterlash
     rpd_df_filtered = rpd_df[(rpd_df['created_date_only'] >= selected_start) &
-                         (rpd_df['created_date_only'] <= selected_end)]
-
-
-
-        # 🔹 KPIs
+                             (rpd_df['created_date_only'] <= selected_end)]
+    # Agar rpd ustuni hali ham bitta string bo'lsa:
+    rpd_df['rpd'] = rpd_df['rpd'].astype(str).str.replace(" ", "").astype(float)
+    rpd_df['rpd'] = pd.to_numeric(rpd_df['rpd'], errors='coerce')
+    # 6️⃣ KPI hisoblash
     col1, col2, col3 = st.columns(3)
-    with col1:
-        rpd = rpd_df_filtered['rpd'].mean()
-        st.metric("Average RPD", f"{rpd:,.0f} UZS")
-    with col2:
+
+    if 'rpd' in rpd_df_filtered.columns and not rpd_df_filtered.empty:
+        rpd_avg = rpd_df_filtered['rpd'].mean()
         rpd_min = rpd_df_filtered['rpd'].min()
+        rpd_max = rpd_df_filtered['rpd'].max()
+    else:
+        rpd_avg = rpd_min = rpd_max = 0  # bo‘sh bo‘lsa 0 chiqadi
+
+    with col1:
+        st.metric("Average RPD", f"{rpd_avg:,.0f} UZS")
+    with col2:
         st.metric("Minimum RPD", f"{rpd_min:,.0f} UZS")
     with col3:
-        rpd_max = rpd_df_filtered['rpd'].max()
         st.metric("Maximum RPD", f"{rpd_max:,.0f} UZS")
 
+    rpd_df_grouped = rpd_df_filtered.groupby(['created_date_only'], as_index=False)['rpd'].sum()
+    fig = px.bar(
+        rpd_df_grouped,
+        x='created_date_only',
+        y='rpd',  # Revenue Per Driver
+        labels={'created_date_only':'Date','rpd':'Revenue Per Driver'},
+        title="Revenue Per Driver",
+        text=rpd_df_grouped['rpd'].apply(lambda x: f"{x:,.0f}")
+    )
+
+    fig.update_traces(textposition='inside')
+    fig.update_layout(yaxis_tickformat=',')  # y-axis format
+
+    # Grafik tagida note qo‘shish
+    fig.add_annotation(
+        xref='paper', yref='paper',
+        x=-0.1, y=-0.25,  # paper coordinates: x=0 (chap), y=-0.15 (tagi)
+        showarrow=False,
+        text="Revenue / Active Drivers",
+        font=dict(size=12, color="grey")
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    
+
+    # 7️⃣ Filterlangan DataFrame ni ko‘rsatish
+    st.subheader("Filtered Data Preview")
     st.write(rpd_df_filtered.tail())
+
+   
