@@ -6,7 +6,7 @@ import time
 import plotly.express as px
 
 
-tab1, tab2, tab3 = st.tabs(["Revenue","AOV","Revenue per Driver"])
+tab1, tab2, tab3, tab4 = st.tabs(["Revenue","AOV","Revenue per Driver","Driver Top-Ups"])
 
 with tab1:
     st.title("Revenue Dashboard")
@@ -346,4 +346,121 @@ with tab3:
     st.subheader("Filtered Data Preview")
     st.write(rpd_df_filtered.tail())
 
-   
+with tab4:
+    st.title("Driver Top-Ups Statistic")
+    
+    # 1️⃣ Google Sheet URL
+    url = f"https://docs.google.com/spreadsheets/d/1Xa1cxYF0Zp3dLq04T5MmbzHpqZpiFqZW/export?format=csv&gid=1401524925&t={time.time()}"
+    dt_df = pd.read_csv(url,sep=",")
+
+    # 2️⃣ Date ustunini to'g'rilash
+    dt_df['created_date'] = pd.to_datetime(dt_df['clean_date'], errors='coerce')  # clean_date mavjud deb faraz qilamiz
+    dt_df['created_date_only'] = dt_df['created_date'].dt.date
+
+    # 3️⃣ Noto‘g‘ri sanalarni olib tashlash
+    dt_df = dt_df[dt_df['created_date_only'].notna()]
+
+    # 4️⃣ Slider uchun min va max date
+    start_date = dt_df['created_date_only'].min()
+    end_date = dt_df['created_date_only'].max()
+    selected_start, selected_end = st.slider(
+        "Select Date Range",
+        min_value=start_date,
+        max_value=end_date,
+        value=(start_date, end_date)
+    )
+       # 5️⃣ Data filterlash
+    dt_df_filtered = dt_df[(dt_df['created_date_only'] >= selected_start) &
+                             (dt_df['created_date_only'] <= selected_end)]
+    # Agar rpd ustuni hali ham bitta string bo'lsa:
+    dt_df['total_value'] = dt_df['total_value'].astype(str).str.replace(" ", "").astype(float)
+    dt_df['total_value'] = pd.to_numeric(dt_df['total_value'], errors='coerce')
+    # 6️⃣ KPI hisoblash
+    col1, col2, col3 = st.columns(3)
+
+    if 'total_value' in dt_df_filtered.columns and not dt_df_filtered.empty:
+        dt_avg = dt_df_filtered['total_value'].mean()
+        dt_min = dt_df_filtered['total_value'].min()
+        dt_max = dt_df_filtered['total_value'].max()
+    else:
+        dt_avg = dt_min = dt_max = 0  # bo‘sh bo‘lsa 0 chiqadi
+
+    with col1:
+        st.metric("Average rt", f"{dt_avg:,.0f} UZS")
+    with col2:
+        st.metric("Minimum rt", f"{dt_min:,.0f} UZS")
+    with col3:
+        st.metric("Maximum rt", f"{dt_max:,.0f} UZS")
+
+    dt_df_grouped = dt_df_filtered.groupby(['created_date_only'], as_index=False)['total_value'].sum()
+    fig = px.bar(
+        dt_df_grouped,
+        x='created_date_only',
+        y='total_value',  # Revenue Per Driver
+        labels={'created_date_only':'Date','total_value':'Revenue Per Driver'},
+        title="Revenue Per Driver",
+        text=dt_df_grouped['total_value'].apply(lambda x: f"{x:,.0f}")
+    )
+
+    fig.update_traces(textposition='inside')
+    fig.update_layout(yaxis_tickformat=',')  # y-axis format
+
+    # Grafik tagida note qo‘shish
+    fig.add_annotation(
+        xref='paper', yref='paper',
+        x=-0.1, y=-0.25,  # paper coordinates: x=0 (chap), y=-0.15 (tagi)
+        showarrow=False,
+        text="Revenue / Active Drivers",
+        font=dict(size=12, color="grey")
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    
+
+    # 7️⃣ Filterlangan DataFrame ni ko‘rsatish
+    st.subheader("Filtered Data Preview")
+
+        #### Weekly Statistics #######
+
+    dt_df_filtered['weekday'] = dt_df_filtered['created_date_only'].apply(lambda x: x.strftime('%A'))
+    dt_df_filtered['total_value'] = dt_df_filtered['total_value']
+
+    # Hafta kunlari bo'yicha o'rtacha
+    # 1️⃣ Haftaning kunini aniqlash
+    dt_df_filtered['weekday'] = dt_df_filtered['created_date'].dt.day_name()  # English weekdays
+
+    # 2️⃣ Haftaning kunlari bo'yicha AOV ni hisoblash
+    weekday_dt = dt_df_filtered.groupby('weekday', as_index=False).agg({'total_value':'mean'})
+
+    # 3️⃣ KPI ko'rinishida chiqarish
+    st.subheader("Average Driver Top-Ups by weekdays")
+
+    # Hafta kunlarini tartiblab olish (Monday -> Sunday)
+    weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    weekday_dt['weekday'] = pd.Categorical(weekday_dt['weekday'], categories=weekday_order, ordered=True)
+    weekday_dt = weekday_dt.sort_values('weekday')
+
+    # 4️⃣ Bar chart chizish
+    fig = px.bar(
+        weekday_dt,
+        x='weekday',
+        y='total_value',
+        labels={'weekday':'Day of Week','total_value':'Average Top-Up'},
+        title='Average Order Value by Weekday',
+        text=weekday_dt['total_value'].apply(lambda x: f"{x:,.0f}")
+    )
+
+    # Textni bar ichida ko‘rsatish
+    fig.update_traces(textposition='inside')  
+
+    # Y-axis formatini chiroyli qilish
+    fig.update_layout(
+        yaxis_tickformat=',',
+        xaxis_tickangle=-45,      # hafta kunlarini diagonal qilib yozish
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write(rpd_df_filtered.tail())
