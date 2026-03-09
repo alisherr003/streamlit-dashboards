@@ -6,7 +6,7 @@ import time
 import plotly.express as px
 
 
-tab1, tab2, tab3, tab4 = st.tabs(["Revenue","AOV","Revenue per Driver","Driver Top-Ups"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Revenue","AOV","Revenue per Driver","Driver Top-Ups","Orders statuses"])
 
 with tab1:
     st.title("Revenue Dashboard")
@@ -392,6 +392,7 @@ with tab4:
     with col3:
         st.metric("Maximum rt", f"{dt_max:,.0f} UZS")
 
+    #Grafik qismi
     dt_df_grouped = dt_df_filtered.groupby(['created_date_only'], as_index=False)['total_value'].sum()
     fig = px.bar(
         dt_df_grouped,
@@ -464,3 +465,243 @@ with tab4:
     st.plotly_chart(fig, use_container_width=True)
 
     st.write(rpd_df_filtered.tail())
+
+with tab5:
+    st.title("Orders Statuses")
+
+    # 1️⃣ Google Sheet URL
+    url = f"https://docs.google.com/spreadsheets/d/1iEfV0MKuYGd5KlQ16ICFvfobR0HFzCfx/export?format=csv&gid=2110379304&t={time.time()}"
+    o_df = pd.read_csv(url)
+
+    # 2️⃣ Date ustunini to'g'rilash
+    o_df['order_date'] = pd.to_datetime(o_df['clean_date'], errors='coerce')
+    o_df['created_date_only'] = o_df['order_date'].dt.date
+
+    # 3️⃣ Noto‘g‘ri sanalarni olib tashlash
+    o_df = o_df[o_df['created_date_only'].notna()]
+
+    # 4️⃣ CNT ustunini numeric qilish
+    o_df['cnt'] = (
+        o_df['cnt']
+        .astype(str)
+        .str.replace(" ", "")
+        .astype(float)
+    )
+
+    # 5️⃣ Slider uchun min va max date
+    start_date = o_df['created_date_only'].min()
+    end_date = o_df['created_date_only'].max()
+
+    selected_start, selected_end = st.slider(
+        "Select Date Range",
+        min_value=start_date,
+        max_value=end_date,
+        value=(start_date, end_date)
+    )
+
+    # 6️⃣ Data filterlash
+    o_df_filtered = o_df[
+        (o_df['created_date_only'] >= selected_start) &
+        (o_df['created_date_only'] <= selected_end)
+    ]
+
+    # 7️⃣ KPI hisoblash
+    total_orders = o_df_filtered['cnt'].sum()
+
+    completed = o_df_filtered.loc[
+        o_df_filtered['status_name'] == 'Yakunlangan', 'cnt'
+    ].sum()
+
+    client_cancel = o_df_filtered.loc[
+        o_df_filtered['status_name'] == 'Mijoz tomonidan bekor qilingan', 'cnt'
+    ].sum()
+
+    no_driver_cancel = o_df_filtered.loc[
+        o_df_filtered['status_name'] == 'Haydovchi topilmaganligi sababli bekor qilingan', 'cnt'
+    ].sum()
+
+    # 8️⃣ Foizlar
+    completed_pct = (completed / total_orders * 100) if total_orders else 0
+    client_cancel_pct = (client_cancel / total_orders * 100) if total_orders else 0
+    no_driver_cancel_pct = (no_driver_cancel / total_orders * 100) if total_orders else 0
+
+    # 9️⃣ KPI chiqarish
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "Yakunlangan",
+            f"{completed:,.0f}",
+            f"{completed_pct:.1f}% of total"
+        )
+
+    with col2:
+        st.metric(
+            "Client Cancelled",
+            f"{client_cancel:,.0f}",
+            f"{client_cancel_pct:.1f}% of total"
+        )
+
+    with col3:
+        st.metric(
+            "No Driver Cancel",
+            f"{no_driver_cancel:,.0f}",
+            f"{no_driver_cancel_pct:.1f}% of total"
+        )
+
+    
+
+    # Line Graph - statuslar buyicha
+    st.subheader("Orders by Status (Daily Trend)")
+
+    #status_list = [  ##### STATUSGA FILTER QUYISHNI OLIB QUYDIM, YANA QO'SHIB QUYSA BOLADI
+    #   'Yakunlangan',
+    #   'Mijoz tomonidan bekor qilingan',
+    #    'Haydovchi topilmaganligi sababli bekor qilingan'
+    #]
+
+    #selected_status = st.multiselect(
+    #    "Select Status",
+    #    status_list,
+    #    default=status_list
+    #)
+
+    #df_status = o_df_filtered[o_df_filtered['status_name'].isin(selected_status)]
+
+    daily_status = o_df_filtered.groupby(
+        ['created_date_only','status_name'],
+        as_index=False
+    )['cnt'].sum()
+
+    fig = px.line(
+        daily_status,
+        x='created_date_only',
+        y='cnt',
+        color='status_name',
+        color_discrete_map={
+            'Yakunlangan':'green',
+            'Mijoz tomonidan bekor qilingan':'red',
+            'Haydovchi topilmaganligi sababli bekor qilingan':'yellow'
+        },
+       # markers=True,
+       # labels={'cnt':'Orders','created_date_only':'Date','status_name':'Status'},
+       # title="Daily Orders by Status"
+    )
+
+    # Grafikni kattalashtirish va legendni pastga tushirish
+    fig.update_layout(
+        height=550,  # grafik balandligi
+        legend=dict(
+            orientation="h",   # gorizontal
+            yanchor="top",
+            y=-0.25,           # pastga tushirish
+            xanchor="center",
+            x=0.5
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Oyma-oy status ulushlarini korish uchun
+    st.subheader("Monthly Status Distribution")
+
+    o_df_filtered['month'] = pd.to_datetime(
+        o_df_filtered['created_date_only']
+    ).dt.to_period('M').astype(str)
+
+    monthly_status = o_df_filtered.groupby(
+        ['month','status_name'],
+        as_index=False
+    )['cnt'].sum()
+
+    # umumiy orderlar har oy uchun
+    monthly_total = monthly_status.groupby('month')['cnt'].transform('sum')
+
+    # foiz hisoblash
+    monthly_status['percent'] = monthly_status['cnt'] / monthly_total * 100
+
+    fig = px.bar(
+        monthly_status,
+        x='month',
+        y='cnt',
+        color='status_name',
+        barmode='stack',
+        color_discrete_map={
+            'Yakunlangan':'green',
+            'Mijoz tomonidan bekor qilingan':'red',
+            'Haydovchi topilmaganligi sababli bekor qilingan':'yellow'
+        },
+        text=monthly_status['percent'].apply(lambda x: f"{x:.1f}%"),
+        labels={'cnt':'Orders','month':'Month','status_name':'Status'},
+        title="Monthly Orders by Status"
+    )
+
+    fig.update_traces(textposition='inside')
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    ## Haftalik statistikani ko'rish uchun
+    st.subheader("Weekday Status Distribution (%)")
+
+    # Weekday ustuni
+    o_df_filtered['weekday'] = pd.to_datetime(
+        o_df_filtered['created_date_only']
+    ).dt.day_name()
+
+    # Haftaning kunlari tartibi
+    weekday_order = [
+        'Monday','Tuesday','Wednesday','Thursday',
+        'Friday','Saturday','Sunday'
+    ]
+
+    # Statuslar bo'yicha CNT
+    weekday_status = o_df_filtered.groupby(
+        ['weekday','status_name'],
+        as_index=False
+    )['cnt'].sum()
+
+    # Har bir weekday uchun total
+    weekday_total = weekday_status.groupby('weekday')['cnt'].transform('sum')
+
+    # Foiz hisoblash
+    weekday_status['percent'] = weekday_status['cnt'] / weekday_total * 100
+
+    # Tartiblash
+    weekday_status['weekday'] = pd.Categorical(
+        weekday_status['weekday'],
+        categories=weekday_order,
+        ordered=True
+    )
+
+    weekday_status = weekday_status.sort_values('weekday')
+
+    # Grafik
+    fig = px.bar(
+        weekday_status,
+        x='weekday',
+        y='cnt',
+        color='status_name',
+        barmode='stack',
+        color_discrete_map={
+            'Yakunlangan':'green',
+            'Mijoz tomonidan bekor qilingan':'red',
+            'Haydovchi topilmaganligi sababli bekor qilingan':'yellow'
+        },
+        text=weekday_status['percent'].apply(lambda x: f"{x:.1f}%"),
+        labels={'cnt':'Orders','weekday':'Weekday','status_name':'Status'},
+        title="Weekday Status Distribution"
+    )
+
+    fig.update_traces(textposition='inside')
+
+    fig.update_layout(
+        yaxis_tickformat=",",
+        legend=dict(
+            orientation="h",
+            y=-0.25,
+            x=0.5,
+            xanchor="center"
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
