@@ -15,6 +15,7 @@ with tab1:
     url = f"https://docs.google.com/spreadsheets/d/1uX-olx_6RCQ9K5j0_39Fqt-FIKCC8ag6/export?format=csv&gid=573004352&t={time.time()}"
 
     # 🔹 Funksiya: Google Sheet’dan data olish va tozalash
+    @st.cache_data(ttl=600)
     def load_data():
         df = pd.read_csv(url)
         df['created_date'] = pd.to_datetime(df['clean_date'], errors='coerce')  # clean_date ustuni
@@ -164,19 +165,32 @@ with tab1:
 with tab2:
     st.title("Average Order Value")
     
-    url = f"https://docs.google.com/spreadsheets/d/1QuKlD80GdgBF2Seto7bj4Xm2WoOaMEeH/export?format=csv&gid=285760237&t={time.time()}"
-    aov_df = pd.read_csv(url)
+    url = "https://docs.google.com/spreadsheets/d/1QuKlD80GdgBF2Seto7bj4Xm2WoOaMEeH/export?format=csv&gid=285760237"
 
-    # 1️⃣ to'g'ri DataFrame ustuni bilan ishlash
-    aov_df['created_date'] = pd.to_datetime(aov_df['clean_date'], errors='coerce')  # clean_date ustuni bor deb faraz qilamiz
-    aov_df['created_date_only'] = aov_df['created_date'].dt.date
+    @st.cache_data(ttl=600)
+    def load_data():
+        aov_df = pd.read_csv(url)
 
-    # 2️⃣ Noto‘g‘ri sanalarni olib tashlash
-    aov_df = aov_df[aov_df['created_date_only'].notna()]
+        # sana ustunini tayyorlash
+        aov_df['created_date'] = pd.to_datetime(aov_df['clean_date'], errors='coerce')
+        aov_df['created_date_only'] = aov_df['created_date'].dt.date
 
-    # 3️⃣ Slider uchun min va max date
+        # noto‘g‘ri sanalarni olib tashlash
+        aov_df = aov_df[aov_df['created_date_only'].notna()]
+
+        return aov_df
+
+
+    # data yuklash
+    aov_df = load_data()
+
+
+    # slider uchun min/max
     start_date = aov_df['created_date_only'].min()
     end_date = aov_df['created_date_only'].max()
+
+
+    # slider
     selected_start, selected_end = st.slider(
         "AOV Date Range",
         min_value=start_date,
@@ -184,9 +198,12 @@ with tab2:
         value=(start_date, end_date)
     )
 
-    # 4️⃣ Data filterlash
-    aov_df_filtered = aov_df[(aov_df['created_date_only'] >= selected_start) &
-                         (aov_df['created_date_only'] <= selected_end)]
+
+    # filter
+    aov_df_filtered = aov_df[
+        (aov_df['created_date_only'] >= selected_start) &
+        (aov_df['created_date_only'] <= selected_end)
+    ]
 
     # 🔹 KPIs
     col1, col2, col3 = st.columns(3)
@@ -274,19 +291,38 @@ with tab3:
     st.title("Revenue per Driver")
     
     # 1️⃣ Google Sheet URL
-    url = f"https://docs.google.com/spreadsheets/d/1C10Y4jSIJKcP-LnUzhh07Fuiwyr9aHUX/export?format=csv&gid=1164044928&t={time.time()}"
-    rpd_df = pd.read_csv(url,sep=",")
+    url = "https://docs.google.com/spreadsheets/d/1C10Y4jSIJKcP-LnUzhh07Fuiwyr9aHUX/export?format=csv&gid=1164044928"
 
-    # 2️⃣ Date ustunini to'g'rilash
-    rpd_df['created_date'] = pd.to_datetime(rpd_df['clean_date'], errors='coerce')  # clean_date mavjud deb faraz qilamiz
-    rpd_df['created_date_only'] = rpd_df['created_date'].dt.date
+    @st.cache_data(ttl=600)
+    def load_rpd_data():
+        rpd_df = pd.read_csv(url, sep=",")
 
-    # 3️⃣ Noto‘g‘ri sanalarni olib tashlash
-    rpd_df = rpd_df[rpd_df['created_date_only'].notna()]
+        # Date ustunini to'g'rilash
+        rpd_df['created_date'] = pd.to_datetime(rpd_df['clean_date'], errors='coerce')
+        rpd_df['created_date_only'] = rpd_df['created_date'].dt.date
 
-    # 4️⃣ Slider uchun min va max date
+        # Noto‘g‘ri sanalarni olib tashlash
+        rpd_df = rpd_df[rpd_df['created_date_only'].notna()]
+
+        # rpd ustunini tozalash
+        rpd_df['rpd'] = (
+            rpd_df['rpd']
+            .astype(str)
+            .str.replace(" ", "")
+        )
+        rpd_df['rpd'] = pd.to_numeric(rpd_df['rpd'], errors='coerce')
+
+        return rpd_df
+
+
+    # data yuklash
+    rpd_df = load_rpd_data()
+
+
+    # Slider uchun min/max
     start_date = rpd_df['created_date_only'].min()
     end_date = rpd_df['created_date_only'].max()
+
     selected_start, selected_end = st.slider(
         "Select Date Range",
         min_value=start_date,
@@ -294,12 +330,12 @@ with tab3:
         value=(start_date, end_date)
     )
 
-    # 5️⃣ Data filterlash
-    rpd_df_filtered = rpd_df[(rpd_df['created_date_only'] >= selected_start) &
-                             (rpd_df['created_date_only'] <= selected_end)]
-    # Agar rpd ustuni hali ham bitta string bo'lsa:
-    rpd_df['rpd'] = rpd_df['rpd'].astype(str).str.replace(" ", "").astype(float)
-    rpd_df['rpd'] = pd.to_numeric(rpd_df['rpd'], errors='coerce')
+
+    # Data filter
+    rpd_df_filtered = rpd_df[
+        (rpd_df['created_date_only'] >= selected_start) &
+        (rpd_df['created_date_only'] <= selected_end)
+    ]
     # 6️⃣ KPI hisoblash
     col1, col2, col3 = st.columns(3)
 
@@ -350,31 +386,51 @@ with tab4:
     st.title("Driver Top-Ups Statistic")
     
     # 1️⃣ Google Sheet URL
-    url = f"https://docs.google.com/spreadsheets/d/1Xa1cxYF0Zp3dLq04T5MmbzHpqZpiFqZW/export?format=csv&gid=1401524925&t={time.time()}"
-    dt_df = pd.read_csv(url,sep=",")
+    url = "https://docs.google.com/spreadsheets/d/1Xa1cxYF0Zp3dLq04T5MmbzHpqZpiFqZW/export?format=csv&gid=1401524925"
 
-    # 2️⃣ Date ustunini to'g'rilash
-    dt_df['created_date'] = pd.to_datetime(dt_df['clean_date'], errors='coerce')  # clean_date mavjud deb faraz qilamiz
-    dt_df['created_date_only'] = dt_df['created_date'].dt.date
+    @st.cache_data(ttl=600)
+    def load_dt_data():
+        dt_df = pd.read_csv(url, sep=",")
 
-    # 3️⃣ Noto‘g‘ri sanalarni olib tashlash
-    dt_df = dt_df[dt_df['created_date_only'].notna()]
+        # Date ustunini to'g'rilash
+        dt_df['created_date'] = pd.to_datetime(dt_df['clean_date'], errors='coerce')
+        dt_df['created_date_only'] = dt_df['created_date'].dt.date
 
-    # 4️⃣ Slider uchun min va max date
+        # Noto‘g‘ri sanalarni olib tashlash
+        dt_df = dt_df[dt_df['created_date_only'].notna()]
+
+        # total_value ustunini tozalash
+        dt_df['total_value'] = (
+            dt_df['total_value']
+            .astype(str)
+            .str.replace(" ", "")
+        )
+        dt_df['total_value'] = pd.to_numeric(dt_df['total_value'], errors='coerce')
+
+        return dt_df
+
+
+    # data yuklash
+    dt_df = load_dt_data()
+
+
+    # Slider uchun min/max
     start_date = dt_df['created_date_only'].min()
     end_date = dt_df['created_date_only'].max()
+
     selected_start, selected_end = st.slider(
         "Select Date Range",
         min_value=start_date,
         max_value=end_date,
         value=(start_date, end_date)
     )
-       # 5️⃣ Data filterlash
-    dt_df_filtered = dt_df[(dt_df['created_date_only'] >= selected_start) &
-                             (dt_df['created_date_only'] <= selected_end)]
-    # Agar rpd ustuni hali ham bitta string bo'lsa:
-    dt_df['total_value'] = dt_df['total_value'].astype(str).str.replace(" ", "").astype(float)
-    dt_df['total_value'] = pd.to_numeric(dt_df['total_value'], errors='coerce')
+
+
+    # Data filter
+    dt_df_filtered = dt_df[
+        (dt_df['created_date_only'] >= selected_start) &
+        (dt_df['created_date_only'] <= selected_end)
+    ]
     # 6️⃣ KPI hisoblash
     col1, col2, col3 = st.columns(3)
 
@@ -469,26 +525,35 @@ with tab4:
 with tab5:
     st.title("Orders Statuses")
 
-    # 1️⃣ Google Sheet URL
-    url = f"https://docs.google.com/spreadsheets/d/1iEfV0MKuYGd5KlQ16ICFvfobR0HFzCfx/export?format=csv&gid=2110379304&t={time.time()}"
-    o_df = pd.read_csv(url)
+    url = "https://docs.google.com/spreadsheets/d/1iEfV0MKuYGd5KlQ16ICFvfobR0HFzCfx/export?format=csv&gid=2110379304"
 
-    # 2️⃣ Date ustunini to'g'rilash
-    o_df['order_date'] = pd.to_datetime(o_df['clean_date'], errors='coerce')
-    o_df['created_date_only'] = o_df['order_date'].dt.date
+    @st.cache_data(ttl=600)
+    def load_orders_data():
+        o_df = pd.read_csv(url)
 
-    # 3️⃣ Noto‘g‘ri sanalarni olib tashlash
-    o_df = o_df[o_df['created_date_only'].notna()]
+        # Date ustunini to'g'rilash
+        o_df['order_date'] = pd.to_datetime(o_df['clean_date'], errors='coerce')
+        o_df['created_date_only'] = o_df['order_date'].dt.date
 
-    # 4️⃣ CNT ustunini numeric qilish
-    o_df['cnt'] = (
-        o_df['cnt']
-        .astype(str)
-        .str.replace(" ", "")
-        .astype(float)
-    )
+        # Noto‘g‘ri sanalarni olib tashlash
+        o_df = o_df[o_df['created_date_only'].notna()]
 
-    # 5️⃣ Slider uchun min va max date
+        # cnt ustunini numeric qilish
+        o_df['cnt'] = (
+            o_df['cnt']
+            .astype(str)
+            .str.replace(" ", "")
+        )
+        o_df['cnt'] = pd.to_numeric(o_df['cnt'], errors='coerce')
+
+        return o_df
+
+
+    # data yuklash
+    o_df = load_orders_data()
+
+
+    # Slider uchun min/max
     start_date = o_df['created_date_only'].min()
     end_date = o_df['created_date_only'].max()
 
@@ -499,7 +564,8 @@ with tab5:
         value=(start_date, end_date)
     )
 
-    # 6️⃣ Data filterlash
+
+    # Data filter
     o_df_filtered = o_df[
         (o_df['created_date_only'] >= selected_start) &
         (o_df['created_date_only'] <= selected_end)
