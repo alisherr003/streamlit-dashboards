@@ -6,7 +6,7 @@ import time
 import plotly.express as px
 
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Revenue","AOV","Revenue per Driver","Driver Top-Ups","Orders statuses"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Revenue","AOV","Revenue per Driver","Driver Top-Ups","Orders statuses","Daily Active Drivers"])
 
 with tab1:
     st.title("Revenue Dashboard")
@@ -15,7 +15,7 @@ with tab1:
     url = f"https://docs.google.com/spreadsheets/d/1uX-olx_6RCQ9K5j0_39Fqt-FIKCC8ag6/export?format=csv&gid=573004352&t={time.time()}"
 
     # 🔹 Funksiya: Google Sheet’dan data olish va tozalash
-    @st.cache_data(ttl=600)
+    @st.cache_data()
     def load_data():
         df = pd.read_csv(url)
         df['created_date'] = pd.to_datetime(df['clean_date'], errors='coerce')  # clean_date ustuni
@@ -771,3 +771,112 @@ with tab5:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+with tab6:
+    st.title("Daily Active Drivers")
+
+    url = "https://docs.google.com/spreadsheets/d/1Xx_ENZMKjuIAoC3EviQom9e-SHDPlP_q/export?format=csv&gid=1521353561"
+
+    @st.cache_data(ttl=600)
+    def load_orders_data():
+        dad_df = pd.read_csv(url)
+
+        # Date ustunini to'g'rilash
+        dad_df['order_date'] = pd.to_datetime(dad_df['clean_date'], errors='coerce')
+        dad_df['created_date_only'] = dad_df['order_date'].dt.date
+
+        # Noto‘g‘ri sanalarni olib tashlash
+        dad_df = dad_df[dad_df['created_date_only'].notna()]
+
+        # cnt ustunini numeric qilish
+        dad_df['cnt'] = (
+            dad_df['cnt']
+            .astype(str)
+            .str.replace(" ", "")
+        )
+        dad_df['cnt'] = pd.to_numeric(dad_df['cnt'], errors='coerce')
+
+        return dad_df
+
+
+    # data yuklash
+    dad_df = load_orders_data()
+
+
+    # Slider uchun min/max
+    start_date = dad_df['created_date_only'].min()
+    end_date = dad_df['created_date_only'].max()
+
+    selected_start, selected_end = st.slider(
+        "Select Date Range",
+        min_value=start_date,
+        max_value=end_date,
+        value=(start_date, end_date)
+    )
+
+
+    # Data filter
+    dad_df_filtered = dad_df[
+            (dad_df['created_date_only'] >= selected_start) &
+            (dad_df['created_date_only'] <= selected_end)
+        ]
+    #Kunlik DAD line graphda
+    daily_cnt = (
+        dad_df_filtered
+        .groupby('created_date_only')['cnt']
+        .sum()
+        .reset_index()
+    )
+
+    st.subheader("Daily Active Drivers")
+
+    st.line_chart(
+        daily_cnt,
+        x="created_date_only",
+        y="cnt"
+    )
+
+    # Oyma-oy DAD
+
+    dad_df_filtered['month'] = dad_df_filtered['order_date'].dt.to_period('M').astype(str)
+    
+    monthly_cnt = (
+        dad_df_filtered
+        .groupby('month')['cnt']
+        .sum()
+        .reset_index()
+    )
+
+    st.subheader("Monthly Active Drivers")
+
+    st.bar_chart(
+        monthly_cnt,
+        x="month",
+        y="cnt"
+    )
+
+    #Haftalik DAD statistikasi
+    dad_df_filtered['weekday'] = dad_df_filtered['order_date'].dt.day_name()
+
+    # Weekday tartibi
+    weekday_order = [
+        "Monday","Tuesday","Wednesday","Thursday",
+        "Friday","Saturday","Sunday"
+    ]
+
+    # Aggregation
+    weekday_cnt = (
+        dad_df_filtered
+        .groupby('weekday')['cnt']
+        .sum()
+        .reindex(weekday_order)
+        .reset_index()
+    )
+
+    st.subheader("Weekly Active Drivers")
+
+    st.bar_chart(
+        weekday_cnt,
+        x="weekday",
+        y="cnt"
+    )
